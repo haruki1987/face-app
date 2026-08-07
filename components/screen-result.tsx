@@ -1,8 +1,10 @@
+"use client"
+
+import { useRef, useState } from "react"
+import html2canvas from "html2canvas"
 import { FunBadge } from "@/components/fun-notice"
 import { MOCK_RESULT, type ResultData } from "@/lib/gwansang-config"
 
-// 결과 카드. 항목은 배열로 순회 렌더링 → 3개든 5개든 레이아웃이 깨지지 않는다.
-// 목표: 세로 스크롤 1회 안에 결과 전체가 들어오고, 한 장 캡처로 완결돼 보이게.
 export function ScreenResult({
   resultData,
   onRestart,
@@ -10,12 +12,123 @@ export function ScreenResult({
   resultData?: ResultData | null
   onRestart: () => void
 }) {
+  const cardRef = useRef<HTMLElement>(null)
   const { headline, items, closing } = resultData || MOCK_RESULT
+
+  const [isSharing, setIsSharing] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  function showToast(msg: string) {
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 2500)
+  }
+
+  // 1. 카드 Canvas 캡처 생성 공통 함수
+  async function generateCardCanvas(): Promise<HTMLCanvasElement | null> {
+    if (!cardRef.current) return null
+    try {
+      return await html2canvas(cardRef.current, {
+        scale: 2, // 선명도 향상
+        useCORS: true,
+        backgroundColor: "#0f172a", // 다크 배경 지정
+      })
+    } catch (err) {
+      console.error("Canvas generation failed:", err)
+      return null
+    }
+  }
+
+  // 2. [📤 SNS 공유하기] - Web Share API 연동
+  async function handleShare() {
+    setIsSharing(true)
+    try {
+      const canvas = await generateCardCanvas()
+      if (!canvas) {
+        showToast("카드 캡처 생성에 실패했습니다.")
+        setIsSharing(false)
+        return
+      }
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          showToast("이미지 생성 오류가 발생했습니다.")
+          setIsSharing(false)
+          return
+        }
+
+        const file = new File([blob], "gwansang_result.png", { type: "image/png" })
+        const shareData: ShareData = {
+          title: "오늘의 관상",
+          text: "사진 한 장으로 보는 재미있는 내 관상 결과 이야기! ✨",
+          files: [file],
+        }
+
+        // 모바일 Web Share API 지원 체크 (파일 공유 지원 여부 포함)
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          try {
+            await navigator.share(shareData)
+          } catch (shareErr: any) {
+            if (shareErr.name !== "AbortError") {
+              showToast("공유 중 오류가 발생했습니다.")
+            }
+          }
+        } else {
+          // PC 브라우저 등 미지원 환경 Fallback: 이미지 바로 다운로드 + 링크 복사
+          handleDownload()
+          handleCopyLink("결과 이미지가 저장되었습니다! 링크도 함께 복사되었어요.")
+        }
+        setIsSharing(false)
+      }, "image/png")
+    } catch (err) {
+      showToast("공유 기능을 실행할 수 없습니다.")
+      setIsSharing(false)
+    }
+  }
+
+  // 3. [💾 카드 이미지 저장] - PNG 이미지 다운로드
+  async function handleDownload() {
+    setIsDownloading(true)
+    try {
+      const canvas = await generateCardCanvas()
+      if (!canvas) {
+        showToast("이미지 캡처 생성 실패")
+        setIsDownloading(false)
+        return
+      }
+
+      const dataUrl = canvas.toDataURL("image/png")
+      const link = document.createElement("a")
+      link.href = dataUrl
+      link.download = "gwansang_result.png"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      showToast("결과 카드가 앨범/다운로드에 저장되었습니다!")
+    } catch (err) {
+      showToast("이미지 저장에 실패했습니다.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // 4. [🔗 링크 복사] - 클립보드 복사
+  async function handleCopyLink(customMsg?: string) {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      showToast(customMsg || "서비스 링크가 클립보드에 복사되었어요!")
+    } catch (err) {
+      showToast("링크 복사에 실패했습니다.")
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col">
       {/* 캡처 대상 카드 */}
-      <section className="relative overflow-hidden rounded-3xl border border-primary/25 bg-card p-6 shadow-2xl">
+      <section
+        ref={cardRef}
+        className="relative overflow-hidden rounded-3xl border border-primary/25 bg-card p-6 shadow-2xl"
+      >
         <div aria-hidden className="starry pointer-events-none absolute inset-0 opacity-60" />
 
         <div className="relative">
@@ -54,15 +167,107 @@ export function ScreenResult({
         </div>
       </section>
 
-      <div className="mt-auto pt-6">
+      {/* 토스트 알림 메시지 */}
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-4 rounded-2xl border border-primary/30 bg-primary/15 px-4 py-3 text-center text-sm text-foreground shadow-lg animate-in fade-in slide-in-from-bottom-2"
+        >
+          {toastMessage}
+        </div>
+      )}
+
+      {/* 공유 & 액션 버튼 그룹 */}
+      <div className="mt-6 flex flex-col gap-3">
+        <button
+          type="button"
+          disabled={isSharing}
+          onClick={handleShare}
+          className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-base font-semibold text-primary-foreground shadow-lg transition active:scale-[0.99] disabled:opacity-50"
+        >
+          <ShareIcon />
+          <span>{isSharing ? "카드 캡처 중..." : "SNS로 결과 공유하기"}</span>
+        </button>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={isDownloading}
+            onClick={handleDownload}
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-3 text-sm font-medium text-foreground transition active:scale-[0.98] disabled:opacity-50"
+          >
+            <DownloadIcon />
+            <span>{isDownloading ? "저장 중..." : "이미지 저장"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCopyLink()}
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card/80 px-3 text-sm font-medium text-foreground transition active:scale-[0.98]"
+          >
+            <LinkIcon />
+            <span>링크 복사</span>
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={onRestart}
-          className="h-14 w-full rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-lg transition active:scale-[0.99]"
+          className="mt-2 flex h-13 w-full items-center justify-center gap-2 rounded-2xl border border-border/60 bg-secondary/50 px-4 text-base font-medium text-secondary-foreground transition active:scale-[0.99]"
         >
-          다시 하기
+          <span>다시 하기</span>
         </button>
       </div>
     </div>
+  )
+}
+
+function ShareIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function LinkIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
