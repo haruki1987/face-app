@@ -1,10 +1,16 @@
 import { FunBadge } from "@/components/fun-notice"
-import { MOCK_RESULT } from "@/lib/gwansang-config"
+import { MOCK_RESULT, type ResultData } from "@/lib/gwansang-config"
 
 // 결과 카드. 항목은 배열로 순회 렌더링 → 3개든 5개든 레이아웃이 깨지지 않는다.
 // 목표: 세로 스크롤 1회 안에 결과 전체가 들어오고, 한 장 캡처로 완결돼 보이게.
-export function ScreenResult({ onRestart }: { onRestart: () => void }) {
-  const { headline, items, closing } = MOCK_RESULT
+export function ScreenResult({
+  resultData,
+  onRestart,
+}: {
+  resultData?: ResultData | null
+  onRestart: () => void
+}) {
+  const { headline, items, closing } = resultData || MOCK_RESULT
 
   return (
     <div className="flex flex-1 flex-col">
