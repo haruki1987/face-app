@@ -1,7 +1,7 @@
 # 06_BACKLOG — 관상 분석 앱 백로그 및 작업 분해 문서
 
 > **최종수정일**: 2026-08-07  
-> **상태**: **최신화 완료 (Sprint 2 완료 반영)**  
+> **상태**: **최신화 완료 (TSK-304 SNS 공유 백로그 추가)**  
 > **관련 문서**: [PRD.md](file:///c:/face-app/docs/PRD.md), [DEVELOPMENT_PLAN.md](file:///c:/face-app/docs/DEVELOPMENT_PLAN.md)
 
 ---
@@ -28,6 +28,7 @@
 | **TSK-301** | Sprint 3 | 결과 카드 연동 | F-04 | 실제 AI JSON 수신 데이터 기반 관상 결과 카드 렌더링 | ✅ 완료 |
 | **TSK-302** | Sprint 3 | 금지 표현 후처리 | E-09, S-4 | §4.4 5대 금지 표현 후처리 regex/키워드 검사 및 위반 시 E 상태 전이 | ✅ 완료 |
 | **TSK-303** | Sprint 3 | QA & E2E 검증 | S-1~S-4 | 모바일 실기기 응답시간 15초 이내(S-2) 및 금지표현 30개 표본 검증(S-4) | ⏳ 진행 예정 |
+| **TSK-304** | Sprint 3 | SNS 공유 & 다운로드 | US-07, F-07 | Web Share API를 통한 모바일 SNS 공유 팝업, Canvas 이미지 저장, 링크 복사 | ⏳ 진행 예정 |
 
 ---
 

@@ -1,7 +1,7 @@
 # 02_UI-SPEC — 관상 분석 앱 UI/UX 명세서
 
 > **최종수정일**: 2026-08-07  
-> **상태**: **최신화 완료 (코드베이스 1:1 동기화)**  
+> **상태**: **최신화 완료 (SNS 공유 및 이미지 저장 사양 추가)**  
 > **관련 소스 파일**: [app/globals.css](file:///c:/face-app/app/globals.css), [components/screen-shell.tsx](file:///c:/face-app/components/screen-shell.tsx), [components/screen-consent.tsx](file:///c:/face-app/components/screen-consent.tsx), [components/screen-select.tsx](file:///c:/face-app/components/screen-select.tsx), [components/screen-analyzing.tsx](file:///c:/face-app/components/screen-analyzing.tsx), [components/screen-result.tsx](file:///c:/face-app/components/screen-result.tsx), [components/screen-error.tsx](file:///c:/face-app/components/screen-error.tsx), [components/fun-notice.tsx](file:///c:/face-app/components/fun-notice.tsx)
 
 ---
@@ -60,17 +60,20 @@
   3. 안내문: `보통 몇 초면 끝나요. 길어도 약 20초 안에는 준비돼요. 잠시만 기다려 주세요.`
   4. 하단 3점 점멸 애니메이션 (`animate-twinkle`)
 
-### 2.4 State D: 결과 카드 (`ScreenResult`)
+### 2.4 State D: 결과 카드 & SNS 공유 (`ScreenResult`)
 - **진입 사유**: 분석 성공 시 (Backend JSON 수신)
-- **주요 구성 (단일 캡처 카드)**:
-  1. 카드 래퍼: `rounded-3xl border border-primary/25 bg-card p-6 shadow-2xl`
-  2. 헤더: `오늘의 관상` 타이틀 + `FunBadge`
-  3. 한 줄 총평 (`headline`): 예) `"오늘의 당신은 '차분한 봄볕' 같은 인상이에요"`
-  4. 부위별 해석 카드 리스트 (`items` - 순회 렌더링):
-     - 소제목(`title`) + 해석 본문(`body`) (눈매, 콧대와 인중, 입가, 이마와 전체 균형 등)
-  5. 마무리 한 줄 (`closing`)
-  6. 캡처 하단 경고 문구: `🎲 이 결과는 재미로 보는 오락 콘텐츠이며 과학적 근거가 없어요.`
-  7. 하단 "다시 하기" 버튼 (Click 시 State B로 1회 복귀)
+- **주요 구성 (단일 캡처 카드 & 공유 액션 영역)**:
+  1. **카드 래퍼 (캡처 대상)**: `rounded-3xl border border-primary/25 bg-card p-6 shadow-2xl`
+     - 헤더: `오늘의 관상` 타이틀 + `FunBadge`
+     - 한 줄 총평 (`headline`): 예) `"오늘의 당신은 '차분한 봄볕' 같은 인상이에요"`
+     - 부위별 해석 카드 리스트 (`items` - 순회 렌더링): 소제목(`title`) + 해석 본문(`body`)
+     - 마무리 한 줄 (`closing`)
+     - 캡처 하단 경고 문구: `🎲 이 결과는 재미로 보는 오락 콘텐츠이며 과학적 근거가 없어요.`
+  2. **공유 및 다운로드 버튼 그룹**:
+     - `[📤 SNS로 공유하기]`: `navigator.share`를 통한 카카오톡, 인스타그램, 트위터(X) 등 네이티브 공유 팝업 호출 (결과 카드 PNG 이미지 + 안내 텍스트)
+     - `[💾 카드 이미지 저장]`: 결과 카드를 PNG 파일(`gwansang_result.png`)로 기기 앨범/PC 다운로드 저장 (`html2canvas` / Canvas)
+     - `[🔗 링크 복사]`: 클립보드에 서비스 URL 복사 (복사 완료 토스트 알림)
+  3. **하단 "다시 하기" 버튼**: Click 시 State B로 1회 복귀
 
 ### 2.5 State E: 에러 (`ScreenError`)
 - **진입 사유**: 예외 처리 E-04 ~ E-07 및 E-09 발생 시

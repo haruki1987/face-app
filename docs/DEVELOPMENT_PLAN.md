@@ -1,7 +1,7 @@
 # 관상 분석 앱 개발 계획서 (Development Plan)
 
 > **최종 수정일**: 2026-08-07  
-> **상태**: **최신화 완료 (Sprint 0, Sprint 1, Sprint 2 개발 완료)**  
+> **상태**: **최신화 완료 (Sprint 3 SNS 공유 기능 계획 반영)**  
 > **관련 문서**: [PRD.md](file:///c:/face-app/docs/PRD.md), [02_UI-SPEC.md](file:///c:/face-app/docs/02_UI-SPEC.md), [03_ANALYSIS-SPEC.md](file:///c:/face-app/docs/03_ANALYSIS-SPEC.md), [04_API-SPEC.md](file:///c:/face-app/docs/04_API-SPEC.md), [06_BACKLOG.md](file:///c:/face-app/docs/06_BACKLOG.md)
 
 ---
@@ -31,7 +31,7 @@ gantt
     section Sprint 2 (완료)
     백엔드 API 및 AI 연동       :done, s2, 2026-08-07, 1d
     section Sprint 3 (예정)
-    결과 카드, 안전성 & QA     :active, s3, 2026-08-08, 2d
+    결과 카드 공유, 안전성 & QA  :active, s3, 2026-08-08, 2d
 ```
 
 ---
@@ -62,16 +62,18 @@ gantt
 
 ---
 
-### ✨ Sprint 3: 결과 카드 렌더링, 안전성 검증 및 최종 QA ⏳ [다음 단계]
-> **목표**: 결과 카드 UX 완성, 성공 지표(S-1~S-4) 및 E2E 테스트 검증
+### ✨ Sprint 3: 결과 카드 SNS 공유, 안전성 검증 및 최종 QA ⏳ [다음 단계]
+> **목표**: 결과 카드 UX 완성, Web Share API 및 이미지/링크 공유 기능 구현(F-07), 성공 지표 및 E2E 검증
 
 #### [주요 작업]
-1. **실제 데이터 연동 결과 카드 UI/UX 최적화**
-   - API 응답 JSON 기반 관상 해석 카드 UI 렌더링 및 모바일 캡처 최적화
+1. **결과 카드 SNS 공유 & 이미지 다운로드 개발 (F-07 / US-07)**
+   - 결과 카드를 Canvas 이미지(PNG)로 변환하는 클라이언트 캡처 엔진 구축 (`html2canvas` / Canvas API)
+   - 모바일 표준 `navigator.share`를 통한 카카오톡, 인스타그램, 트위터(X) 등 네이티브 공유 팝업 연동
+   - 카드 이미지 다운로드 및 서비스 링크 복사(토스트 알림) 구현
 2. **성공 조건(S-1~S-4) & E2E 통합 테스트**
    - S-2 응답 시간 측정 (중앙값 15초 이내)
    - S-4 금지 표현 표본 30건 생성 후 검증 (0건 달성)
-   - 모바일 브라우저(iOS Safari, Android Chrome) 실기기 호환성 및 캡처 테스트
+   - 모바일 브라우저(iOS Safari, Android Chrome) 실기기 호환성 및 캡처/공유 테스트
 
 ---
 
@@ -81,6 +83,7 @@ gantt
 |---|---|---|---|
 | **기능** | A → B → C → D 흐름 실기기 동작 | 모바일 브라우저 E2E 테스트 | ✅ E2E 연결 완료 |
 | **기능** | F-01 ~ F-06 기능 완전 구현 | 단위/통합 테스트 | ✅ F-01~F-06 구현 완료 |
+| **기능** | F-07 SNS 공유 및 이미지 저장 | Web Share API 및 다운로드 테스트 | ⏳ Sprint 3 진행 예정 |
 | **기능** | E-01 ~ E-09 예외 처리 완비 | 예외 모의 발생(Mocking) 테스트 | ✅ E-01~E-09 구현 완료 |
 | **보안** | 인증 정보 클라이언트 미노출 | 소스코드 & 네트워크 패킷 감시 | ✅ Backend Proxy 완료 |
 | **개인정보** | 원본 사진 저장 경로 0개 | 서버 코드 Audit & 스토리지 검증 | ✅ 메모리 버퍼 폐기 준수 |
