@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import html2canvas from "html2canvas"
+import { domToBlob, domToPng } from "modern-screenshot"
 import { FunBadge } from "@/components/fun-notice"
 import { MOCK_RESULT, type ResultData } from "@/lib/gwansang-config"
 
@@ -24,80 +24,82 @@ export function ScreenResult({
     setTimeout(() => setToastMessage(null), 2500)
   }
 
-  // 1. 카드 Canvas 캡처 생성 공통 함수
-  async function generateCardCanvas(): Promise<HTMLCanvasElement | null> {
+  // 1. modern-screenshot 기반 캡처 Blob 생성 (OKLCH, Tailwind 4 호환)
+  async function generateCardBlob(): Promise<Blob | null> {
     if (!cardRef.current) return null
     try {
-      return await html2canvas(cardRef.current, {
-        scale: 2, // 선명도 향상
-        useCORS: true,
-        backgroundColor: "#0f172a", // 다크 배경 지정
+      return await domToBlob(cardRef.current, {
+        scale: 2,
       })
     } catch (err) {
-      console.error("Canvas generation failed:", err)
+      console.error("DOM to Blob failed:", err)
       return null
     }
   }
 
-  // 2. [📤 SNS 공유하기] - Web Share API 연동
+  // 2. modern-screenshot 기반 PNG DataURL 생성
+  async function generateCardPng(): Promise<string | null> {
+    if (!cardRef.current) return null
+    try {
+      return await domToPng(cardRef.current, {
+        scale: 2,
+      })
+    } catch (err) {
+      console.error("DOM to PNG failed:", err)
+      return null
+    }
+  }
+
+  // 3. [📤 SNS 공유하기] - Web Share API 연동
   async function handleShare() {
     setIsSharing(true)
     try {
-      const canvas = await generateCardCanvas()
-      if (!canvas) {
+      const blob = await generateCardBlob()
+      if (!blob) {
         showToast("카드 캡처 생성에 실패했습니다.")
         setIsSharing(false)
         return
       }
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          showToast("이미지 생성 오류가 발생했습니다.")
-          setIsSharing(false)
-          return
-        }
+      const file = new File([blob], "gwansang_result.png", { type: "image/png" })
+      const shareData: ShareData = {
+        title: "오늘의 관상",
+        text: "사진 한 장으로 보는 재미있는 내 관상 결과 이야기! ✨",
+        files: [file],
+      }
 
-        const file = new File([blob], "gwansang_result.png", { type: "image/png" })
-        const shareData: ShareData = {
-          title: "오늘의 관상",
-          text: "사진 한 장으로 보는 재미있는 내 관상 결과 이야기! ✨",
-          files: [file],
-        }
-
-        // 모바일 Web Share API 지원 체크 (파일 공유 지원 여부 포함)
-        if (navigator.canShare && navigator.canShare(shareData)) {
-          try {
-            await navigator.share(shareData)
-          } catch (shareErr: any) {
-            if (shareErr.name !== "AbortError") {
-              showToast("공유 중 오류가 발생했습니다.")
-            }
+      // 모바일 Web Share API 파일 공유 지원 체크
+      if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare(shareData)) {
+        try {
+          await navigator.share(shareData)
+        } catch (shareErr: any) {
+          if (shareErr.name !== "AbortError") {
+            showToast("공유 중 오류가 발생했습니다.")
           }
-        } else {
-          // PC 브라우저 등 미지원 환경 Fallback: 이미지 바로 다운로드 + 링크 복사
-          handleDownload()
-          handleCopyLink("결과 이미지가 저장되었습니다! 링크도 함께 복사되었어요.")
         }
-        setIsSharing(false)
-      }, "image/png")
+      } else {
+        // 미지원 브라우저 Fallback: 이미지 다운로드 및 링크 복사
+        await handleDownload()
+        await handleCopyLink("결과 이미지가 저장되었습니다! 링크도 함께 복사되었어요.")
+      }
     } catch (err) {
       showToast("공유 기능을 실행할 수 없습니다.")
+    } finally {
       setIsSharing(false)
     }
   }
 
-  // 3. [💾 카드 이미지 저장] - PNG 이미지 다운로드
+  // 4. [💾 카드 이미지 저장] - PNG 이미지 다운로드
   async function handleDownload() {
     setIsDownloading(true)
     try {
-      const canvas = await generateCardCanvas()
-      if (!canvas) {
-        showToast("이미지 캡처 생성 실패")
+      const dataUrl = await generateCardPng()
+      if (!dataUrl) {
+        showToast("이미지 캡처 생성에 실패했습니다.")
         setIsDownloading(false)
         return
       }
 
-      const dataUrl = canvas.toDataURL("image/png")
       const link = document.createElement("a")
       link.href = dataUrl
       link.download = "gwansang_result.png"
@@ -112,11 +114,15 @@ export function ScreenResult({
     }
   }
 
-  // 4. [🔗 링크 복사] - 클립보드 복사
+  // 5. [🔗 링크 복사] - 클립보드 복사
   async function handleCopyLink(customMsg?: string) {
     try {
-      await navigator.clipboard.writeText(window.location.href)
-      showToast(customMsg || "서비스 링크가 클립보드에 복사되었어요!")
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(window.location.href)
+        showToast(customMsg || "서비스 링크가 클립보드에 복사되었어요!")
+      } else {
+        showToast("클립보드 복사를 지원하지 않는 브라우저입니다.")
+      }
     } catch (err) {
       showToast("링크 복사에 실패했습니다.")
     }
